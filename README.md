@@ -8,7 +8,7 @@ Copies data (using *dd*) from a raw partition on an SSD/HDD connected a host PC 
 
 * **int_ssd_download.py**
 
-Connects to a camera
+Connects to a camera (much more convenient if the keys are copied: *ssh-copy-id root@192.168.0.9*)
 
 Finds the first raw partition on the internal SSD
 
