@@ -1,2 +1,2 @@
 # elphel-tools-download
-scripts to download data from SSDs raw partitions
+scripts for downloading data from SSDs raw partitions
