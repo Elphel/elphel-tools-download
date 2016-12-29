@@ -3,9 +3,11 @@
 Scripts for working with 10393 camera systems from a host PC
 
 * **ext_ssd_download.py**
+
 Copies data (using *dd*) from a raw partition on an SSD/HDD connected a host PC to a specified destination path
 
 * **int_ssd_download.py**
+
 Connects to a camera
 
 Finds the first raw partition on the internal SSD
