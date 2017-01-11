@@ -43,7 +43,10 @@ echo "<pre>\n";
 // }
 
 if (isset($_GET['path'])) $path=$_GET['path'];
-else $path=".";
+else if ($argc == 2)
+	$path = $argv[1];
+else
+	$path=".";
 
 if (isset($_GET['ext'])) $extension = $_GET['ext']; 
 else                     $extension = "jp4";
