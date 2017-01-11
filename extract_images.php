@@ -57,7 +57,8 @@ $files = scandir("$path");
 if (!is_dir("$path/$destination")) mkdir("$path/$destination",0777);
 
 foreach ($files as $file) {
-    if (get_file_extension($file)=="bin") {
+	$ext = get_file_extension($file);
+    if ($ext == "img" || $ext == "bin" || $ext == "mov") {
 	echo "Splitting $path/$file into {$extension}s\n";
 	split_mov("$path",$file,$destination,$extension,$startMarkerWithExif,$chunksize);
     }
@@ -121,8 +122,10 @@ function split_mov($path,$mov_file,$dest,$ext,$startMarkerWithExif,$chunksize) {
                   }else  if ($model==1003) {
                     $k=$chn+6;
                   }
-                  $new_file_name = $DateTimeOriginal_local."_".$exif_data['SubSecTimeOriginal']."_".$k.".".$ext;
+		} else {
+			$k = intval($exif_data['PageNumber'])+1;
 		}
+		$new_file_name = $DateTimeOriginal_local."_".$exif_data['SubSecTimeOriginal']."_".$k.".".$ext;
 
 		rename($old_file_name,"$path/$dest/$new_file_name");
 	}    

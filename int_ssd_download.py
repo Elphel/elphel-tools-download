@@ -130,8 +130,8 @@ for i in range(len(cams)):
     for d in dirs:
       for p in plist:
         if d==p[0]:
-          pc.download(args.dest,"/dev/"+p[1],d,args.bs,args.bc,args.skip,args.n)
-          dirs.delete(d)
+          pc.download(args.dest,"/dev/"+p[1],args.bs,args.bc,args.skip,args.n)
+          dirs.remove(d)
           if len(dirs)!=0:
             print("wait for the next ssd")
           else:
