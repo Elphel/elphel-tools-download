@@ -108,7 +108,7 @@ foreach ($list as $item) {
     if ($item==$processed_subdir) continue;
     $sublist = preg_grep('/^([^.])/', scandir("$path/$item"));
     foreach($sublist as $subitem){
-      if (split_file("$item/$subitem")==0){
+      if (split_file("$path/$item","$subitem","../$destination")==0){
         if ($move_processed){
           if (!is_dir("$path/$item/$processed_subdir")){
             mkdir("$path/$item/$processed_subdir",0777);
@@ -118,7 +118,7 @@ foreach ($list as $item) {
       }
     }
   }else{
-    if (split_file("$item")==0){
+    if (split_file("$path","$item","$destination")==0){
       if ($move_processed){
         if (!is_dir("$path/$processed_subdir")){
           mkdir("$path/$processed_subdir",0777);
@@ -129,10 +129,8 @@ foreach ($list as $item) {
   }
 }
 
-function split_file($file){
-  
-  global $path;
-  global $destination;
+function split_file($path,$file,$destination){
+
   global $startMarkerWithExif;
   global $chunksize;
   global $input_exts;
