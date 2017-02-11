@@ -99,6 +99,10 @@ if len(cams)==0:
 
 pc = x393.PC()
 
+# ssd to camera for all
+for cam in cams:
+  cam['obj'].ssd_to_camera()
+
 # get raw partitions
 for cam in cams:
   d = cam['obj'].first_found_raw_partition_name()
@@ -124,6 +128,7 @@ all_downloaded = False
 
 for i in range(len(cams)):
   raw_input(bcolors.OKGREEN+"Connect camera (eSATA) to PC (eSATA/SATA). Press Enter to continue..."+bcolors.ENDC)
+  proceed_to_next = False
   t = 0
   while not all_downloaded:
     plist = pc.list_partitions()
@@ -132,11 +137,14 @@ for i in range(len(cams)):
         if d==p[0]:
           pc.download(args.dest,"/dev/"+p[1],args.bs,args.bc,args.skip,args.n)
           dirs.remove(d)
+          proceed_to_next = True
           if len(dirs)!=0:
             print("wait for the next ssd")
           else:
             all_downloaded = True
           break
+    if proceed_to_next:
+      break
     print("Waiting for disks to show up:")
     print(dirs)
     t = t + 1
