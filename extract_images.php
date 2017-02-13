@@ -136,7 +136,7 @@ function split_file($path,$file,$destination){
   global $input_exts;
   
   if (in_array(get_ext("$path/$file"),$input_exts)) {
-    echo "Splitting $path/$file\n";
+    echo "Splitting $path/$file, results dir: $path/$destination\n";
     //split_mov("$path",$file,$destination,$extension,$startMarkerWithExif,$chunksize);
     
     $markers=array();
@@ -185,9 +185,11 @@ function split_file($path,$file,$destination){
 
 function elphel_specific_result_name($file){
 
+  global $forced_ext;
+
   $exif = exif_read_data($file);
   
-  $ext = elphel_specific_result_ext($exif);
+  $ext = elphel_specific_result_ext($exif,$forced_ext);
   
   //converting GMT a local time GMT+7
   $timestamp_local=strtotime($exif['DateTimeOriginal']);/*-25200;*/
@@ -196,15 +198,22 @@ function elphel_specific_result_name($file){
   
   $tmp = explode("_",$exif['Model']);
   if (count($tmp)==2){
-    $model = intval(trim($tmp[1]));
-    $chn = intval($exif['PageNumber'])+1;
-    if        ($model==1001) {
-      $k=$chn;
-    }else  if ($model==1002) {
-      $k=$chn+4;
-    }else  if ($model==1003) {
-      $k=$chn+6;
+    
+    if (trim($tmp[0])=="Eyesis4pi393"){
+    
+      $model = intval(trim($tmp[1]));
+      $chn = intval($exif['PageNumber'])+1;
+      
+      if        ($model==1001) {
+        $k=$chn;
+      }else  if ($model==1002) {
+        $k=$chn+4;
+      }else  if ($model==1003) {
+        $k=$chn+6;
+      }
+      
     }
+    
   }else{
     $k = intval($exif['PageNumber'])+1;
   }
@@ -220,21 +229,21 @@ function get_ext($filename) {
 /**
  * read image format and return extension, elphel elphel_specific
  * @param array $exif Array returned from the PHP's built-in exif_read_data function
+ * @param string $override_ext
  * @return string extension - jpeg or jp4
  */
-function elphel_specific_result_ext($exif){
-  global $forced_ext;
+function elphel_specific_result_ext($exif,$override_ext=""){
   
   //default value
   $ext = "jpeg";
   
-  if ($forced_ext==""){
+  if ($override_ext==""){
     if (isset($exif['MakerNote'][10])){
       $record = ($exif['MakerNote'][10]>>4)&0xf;
       if ($record==5) $ext = "jp4";
     }
   }else{
-    $ext = $forced_ext;
+    $ext = $override_ext;
   }
   return $ext;
 }
