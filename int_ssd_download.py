@@ -45,11 +45,11 @@ I.
 * Destination path: /data/footage/test
   Download:
   * Whole partition in 10GB chunks:
-    {1}${0} -c root@192.168.0.9 -p /dev/sdb2 /data/footage/test{2}
+    {1}${0} -c root@192.168.0.9 /data/footage/test{2}
   * Whole partition in 1GB chunks:
-    {1}${0} -c root@192.168.0.9 -p /dev/sdb2 -bc 50 /data/footage/test{2}
+    {1}${0} -c root@192.168.0.9 -bc 50 /data/footage/test{2}
   * 5GB in 1GB chunks, skip the first 3GBs:
-    {1}${0} -c root@192.168.0.9 -p /dev/sdb2 -bc 50 -s 3 -n 5 /data/footage/test{2}
+    {1}${0} -c root@192.168.0.9 -bc 50 -s 3 -n 5 /data/footage/test{2}
     
 II. multiple cameras modes:
   * "eyesis4pi"
