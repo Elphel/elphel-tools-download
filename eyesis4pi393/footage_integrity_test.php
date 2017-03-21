@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 /**
- * @file extract_images.php
- * @brief split mov/bin/img's (by exif header) into single image files - looks one dir down from the specified path
+ * @file check_footage.php
+ * @brief will check (by timestamps) if any frames in footage are missing (recording errors)
  * @copyright Copyright (C) 2017 Elphel Inc.
  * @author Elphel Inc. <support-list@support.elphel.com>
  *
@@ -23,6 +23,7 @@
 
 set_time_limit(60*60*24);
 
+//$chunksize=10000000; //10MB
 $chunksize=10000000; //10MB 
 $startMarkerWithExif=chr(hexdec("ff")).chr(hexdec("d8")).chr(hexdec("ff")).chr(hexdec("e1"));
 $input_exts = array("img","bin","mov");
@@ -46,17 +47,8 @@ Help:
     
     where:
       * path-to-dir            - string - scan this path + 1 dir down
-      * dest-subdir            - string - save results to "path-to-dir/dest-subdir/"
-      * move-processed-files - 0(default) or 1 - if not 1 - will not move the processed files
-      * forced-ext             - string - override extensions from exifs with this one
     
   * Examples:
-    ** Split all *.img, *.bin and *.mov files in the current dir and 1 dir down, puts results to '0/':
-      ~$ {$argv[0]}
-    ** Split in /data/test + 1 dir down, create and move processed files to /data/test/processed for files in path and /data/test/any-found-subdir/processed for any files found in /data/test/any-found-subdir
-      ~$ {$argv[0]} path=/data/test move_processed=1
-    ** Split all *.img, *.bin and *.mov files in the current dir and 1 dir down, puts results to 'results/', override extensions with 'jpg':
-      ~$ {$argv[0]} dest_path=results ext=jpg
 
 TXT;
 
@@ -78,66 +70,32 @@ if (isset($_GET['path'])){
   $path=$_GET['path'];
 }
 
-// put results to $path/$destination/
-// no need for argv
-if (isset($_GET['dest_path'])){
-  $destination = $_GET['dest_path'];
-}
-
-if (isset($_GET['move_processed'])){
-  $move_processed = $_GET['move_processed'];
-}
-
-if ($move_processed=="1"){
-  $move_processed = true;
-}else{
-  $move_processed = false;
-}
-
-// enforce extension
-if (isset($_GET['ext'])){
-  $forced_ext = $_GET['ext'];
-}
-
 $list = preg_grep('/^([^.])/', scandir($path));
 
-if (!is_dir("$path/$destination")) mkdir("$path/$destination",0777);
+$FOOTAGE_ARRAY = Array();
 
 foreach ($list as $item) {
   if (is_dir("$path/$item")){
     if ($item==$processed_subdir) continue;
     $sublist = preg_grep('/^([^.])/', scandir("$path/$item"));
     foreach($sublist as $subitem){
-      if (split_file("$path/$item","$subitem","../$destination")==0){
-        if ($move_processed){
-          if (!is_dir("$path/$item/$processed_subdir")){
-            mkdir("$path/$item/$processed_subdir",0777);
-          }
-          rename("$path/$item/$subitem","$path/$item/$processed_subdir/$subitem");
-        }
-      }
+        register_file("$path/$item","$subitem","../$destination");
     }
   }else{
-    if (split_file("$path","$item","$destination")==0){
-      if ($move_processed){
-        if (!is_dir("$path/$processed_subdir")){
-          mkdir("$path/$processed_subdir",0777);
-        }
-        rename("$path/$item","$path/$processed_subdir/$item");
-      }
-    }
+    register_file("$path","$item","$destination");
   }
 }
 
-function split_file($path,$file,$destination){
+function register_file($path,$file,$destination){
+
+  global $FOOTAGE_ARRAY;
 
   global $startMarkerWithExif;
   global $chunksize;
   global $input_exts;
   
   if (in_array(get_ext("$path/$file"),$input_exts)) {
-    echo "Splitting $path/$file, results dir: $path/$destination\n";
-    //split_mov("$path",$file,$destination,$extension,$startMarkerWithExif,$chunksize);
+    echo "Processing $path/$file\n";
     
     $markers=array();
     $offset =0;
@@ -164,18 +122,125 @@ function split_file($path,$file,$destination){
     echo "  images found: ".(count($markers)-1)."\n";
    
     //second scan
+    
+    $old_footage_index = 0;
+    
     for ($i=0;$i<(count($markers)-1);$i++) {
 
       fseek($f,$markers[$i]);
       $s = fread($f,$markers[$i+1]-$markers[$i]);
 
-      $tmp_name = "$path/$destination/image.tmp";
+      $tmp_name = "$path/image.tmp";
       file_put_contents($tmp_name,$s);
 
       $result_name = elphel_specific_result_name($tmp_name);
 
-      rename($tmp_name,"$path/$destination/$result_name");
+      //echo "    $result_name\n";
+      
+      $tmp0 = explode(".",$result_name);
+      $tmp1 = explode("_",$tmp0[0]);
+      
+      if (count($tmp1)==5){
+        $footage_index = $tmp1[0]."_".$tmp1[1];
+        $footage_subelement = $tmp1[2];
+        
+        if (!isset($FOOTAGE_ARRAY[$footage_index])){
+          //echo "NEW: $footage_index, OLD: $old_footage_index\n";
+          $FOOTAGE_ARRAY[$footage_index] = Array();
+          $FOOTAGE_ARRAY[$footage_index]['error'] = 0;
+          $FOOTAGE_ARRAY[$footage_index]['warning'] = 0;
+          if (isset($FOOTAGE_ARRAY[$old_footage_index]['data'][0]['number'])){
+            $FOOTAGE_ARRAY[$footage_index]['prevnumber'] = $FOOTAGE_ARRAY[$old_footage_index]['data'][0]['number'];
+            //echo "set prev to ".$FOOTAGE_ARRAY[$old_footage_index]['data'][0]['number']."\n";
+          }else{
+            $FOOTAGE_ARRAY[$footage_index]['prevnumber'] = 0;
+          }
+          $FOOTAGE_ARRAY[$footage_index]['data'] = Array();
+          $old_footage_index = $footage_index;
+        }else{
+          if ($footage_index!=$old_footage_index){
+            #$FOOTAGE_ARRAY[$old_footage_index]['warning'] |= 0x1;
+            $FOOTAGE_ARRAY[$footage_index]['warning'] |= 0x1;
+            echo "\033[38;5;214m";
+            echo "notice: timestamps and ports overlap: $footage_index, index: $footage_subelement";
+            echo "\033[0m";
+            echo "\n";
+          }
+        } 
+        
+        //echo "    pushed to $footage_index: index: $footage_subelement, number: {$tmp1[3]}\n";
+        array_push($FOOTAGE_ARRAY[$footage_index]['data'],Array('index'=>$footage_subelement,'number'=>$tmp1[3],'size'=>$tmp1[4]));
+      }
+      
+      unlink($tmp_name);
+      //rename($tmp_name,"$path/$destination/$result_name");
     }
+    
+    // Analisys phase
+    foreach($FOOTAGE_ARRAY as $key=>$val){
+      if (count($val['data'])==4){
+        $in = $val['data'][0]['number'];
+        
+        if ($in!=($val['prevnumber']+1)&&($val['prevnumber']!=0)){
+          //echo "Meet the prevnumber ".$val['prevnumber']." vs current ".$in."\n";
+          $FOOTAGE_ARRAY[$key]['error'] |= 0x2;
+        }
+        
+        foreach($val['data'] as $k2=>$v2){
+          if ($in!=$v2['number']){
+            $FOOTAGE_ARRAY[$key]['error'] |= 0x4;
+          }
+        }
+      }else{
+        $FOOTAGE_ARRAY[$key]['error'] |= 0x1;
+      }
+      
+    }
+    
+    // Report phase
+    echo "Total files: $i\n";
+    echo "Unique timestamps: ".count($FOOTAGE_ARRAY)."\n";
+    
+    foreach($FOOTAGE_ARRAY as $key=>$val){
+      if      ($val['error']!=0)   echo "\033[91m";
+      else if ($val['warning']!=0) echo "\033[38;5;214m";
+      //echo "$key: ".implode(",",$val['data']);
+      echo "n= ".$val['data'][0]['number']." : ts= $key : ports=";
+      
+      for($j=0;$j<4;$j++){
+        if (isset($val['data'][$j])){
+          echo $val['data'][$j]['index'];
+        }else{
+          echo " ";
+        }
+        if ($j!=3) echo ",";
+      }
+      
+      echo " : sizes(MB)= ";
+      
+      for($j=0;$j<4;$j++){
+        if (isset($val['data'][$j])){
+          $tmp = number_format(round(($val['data'][$j]['size'])/1024/1024,2),2,".","");
+        }else{
+          $tmp = "";
+        }
+
+        echo str_pad($tmp,4);
+        
+        if ($j!=3) echo ", ";
+      }
+
+
+      if ($val['error']!=0){
+        echo " : error code=".$val['error'];
+      }
+      
+      if ($val['error']!=0||$val['warning']!=0) echo "\033[0m";
+      echo "\n";
+    }
+    
+    // reset 
+    $FOOTAGE_ARRAY = Array();
     
     return 0;
   }else{
@@ -211,14 +276,19 @@ function elphel_specific_result_name($file){
       }else  if ($model==1003) {
         $k=$chn+6;
       }
-      
+ 
+    }else{
+      $k = intval($exif['PageNumber'])+1;
     }
     
   }else{
     $k = intval($exif['PageNumber'])+1;
   }
   
-  return "{$timestamp_local}_{$subsecs}_$k.$ext";
+  $img_number = $exif['ImageNumber'];
+  $fsize = $exif['FileSize'];
+  
+  return "{$timestamp_local}_{$subsecs}_{$k}_{$img_number}_{$fsize}.$ext";
   
 }
 
