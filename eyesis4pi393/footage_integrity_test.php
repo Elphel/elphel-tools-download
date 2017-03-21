@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 /**
- * @file check_footage.php
+ * @file footage_integrity_test.php
  * @brief will check (by timestamps) if any frames in footage are missing (recording errors)
  * @copyright Copyright (C) 2017 Elphel Inc.
  * @author Elphel Inc. <support-list@support.elphel.com>
@@ -176,7 +176,7 @@ function register_file($path,$file,$destination){
       //rename($tmp_name,"$path/$destination/$result_name");
     }
     
-    // Analisys phase
+    // Analysis phase
     foreach($FOOTAGE_ARRAY as $key=>$val){
       if (count($val['data'])==4){
         $in = $val['data'][0]['number'];
