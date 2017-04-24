@@ -21,7 +21,8 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-set_time_limit(60*60*24);
+//disable the default time limit for php scripts.
+set_time_limit(0);
 
 $chunksize=10000000; //10MB 
 $startMarkerWithExif=chr(hexdec("ff")).chr(hexdec("d8")).chr(hexdec("ff")).chr(hexdec("e1"));
