@@ -213,6 +213,8 @@ function elphel_specific_result_name($file){
         $k=$chn+6;
       }
       
+    }else{
+        $k = intval($exif['PageNumber'])+1;
     }
     
   }else{
