@@ -214,7 +214,12 @@ function elphel_specific_result_name($file){
       }
       
     }else{
-        $k = intval($exif['PageNumber'])+1;
+        $ks = $exif['PageNumber'];
+        if (count($ks==2)){
+            $k = $ks[0];
+        }else{
+            $k = intval($exif['PageNumber'])+1;
+        }
     }
     
   }else{
