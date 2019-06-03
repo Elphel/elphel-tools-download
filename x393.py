@@ -10,6 +10,7 @@ import os
 import re
 import subprocess
 import time
+import tempfile
 
 def shout(cmd):
   #subprocess.call prints to console
@@ -169,6 +170,34 @@ class PC():
           item = items[-1].split("/")
           plist.append([name[len(self.pattern):],item[-1]])
     return plist
+
+  # mounts partition (/dev/sd?1), reads camogm.disk file
+  # returns the download size from raw partition ((/dev/sd?2))
+  def read_camogm_disk_file(self,part):
+
+    result = ""
+
+    tmp_mount_point = tempfile.mkdtemp()
+    print("mounting "+part+" to "+tmp_mount_point)
+    shout("sudo mount "+part+" "+tmp_mount_point)
+
+    try:
+      with open (tmp_mount_point+"/camogm.disk", "r") as myfile:
+        data=myfile.readlines()
+        if len(data)==2:
+          l2 = data[1]
+          pointers = l2.split("\t")
+          pntr1 = int(pointers[1])
+          pntr2 = int(pointers[2])
+          result = float(pntr2-pntr1)*512/1024/1024/1024
+    except IOError:
+      print(tmp_mount_point+"/camogm.disk NOT FOUND")
+
+    shout("sudo umount "+tmp_mount_point)
+    os.rmdir(tmp_mount_point)
+
+    return result
+
 
   def is_raw(self,part):
     res = shout("sudo blkid | grep "+str(part))

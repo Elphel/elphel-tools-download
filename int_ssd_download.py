@@ -18,6 +18,7 @@ import argparse
 import os
 import sys
 import time
+import math
 
 import x393
 from x393 import bcolors
@@ -135,6 +136,20 @@ for i in range(len(cams)):
     for d in dirs:
       for p in plist:
         if d==p[0]:
+          # p[1] == sdb2
+          # hardcoded /dev/sd?1
+          data_size = pc.read_camogm_disk_file("/dev/"+p[1][0:-1]+"1")
+          data_size = round(data_size,2)
+          # bs is in kB
+          chunk_size = float(args.bs*args.bc)/1024
+          n_chunks = int(math.ceil(data_size/chunk_size))
+
+          if args.n==0:
+            args.n = n_chunks - args.skip
+
+          print("Data size: "+str(data_size)+" GB")
+          print("Download size: "+str(n_chunks)+"x "+str(round(chunk_size,2))+"GB, skipped the first "+str(args.skip)+" chunks")
+
           pc.download(args.dest,"/dev/"+p[1],args.bs,args.bc,args.skip,args.n)
           dirs.remove(d)
           proceed_to_next = True
