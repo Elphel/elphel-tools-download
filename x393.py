@@ -175,7 +175,7 @@ class PC():
   # returns the download size from raw partition ((/dev/sd?2))
   def read_camogm_disk_file(self,part):
 
-    result = ""
+    result = 0
 
     tmp_mount_point = tempfile.mkdtemp()
     print("mounting "+part+" to "+tmp_mount_point)
