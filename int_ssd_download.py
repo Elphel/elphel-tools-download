@@ -43,11 +43,14 @@ examples:\n
 I.
 * internal SSD, camera is powered on
 * The data is on the raw partition /dev/sdb2
+* The file with camogm pointers is on /dev/sdb1
 * Destination path: /data/footage/test
   Download:
-  * Whole partition in 10GB chunks:
+  * Whole footage based on the pointers in (/dev/sdb1) camogm.disk file in 10GB chunks:
     {1}${0} -c root@192.168.0.9 /data/footage/test{2}
-  * Whole partition in 1GB chunks:
+  * Whole footage (based on camogm.disk) in 10GB chunks but skipping the first 2 chunks:
+    {1}${0} -c root@192.168.0.9 -s 2 /data/footage/test{2}
+  * Whole footage (based on camogm.disk) in 1GB chunks:
     {1}${0} -c root@192.168.0.9 -bc 50 /data/footage/test{2}
   * 5GB in 1GB chunks, skip the first 3GBs:
     {1}${0} -c root@192.168.0.9 -bc 50 -s 3 -n 5 /data/footage/test{2}
