@@ -57,7 +57,7 @@ I.
     
 II. multiple cameras modes:
   * "eyesis4pi"
-      * Whole partition in 10GB chunks:
+      * Whole footage (based on camogm.disk) in 10GB chunks:
         {1}${0} -m eyesis4pi /data/footage/test{2}  
 
 """.format(sys.argv[0],bcolors.OKGREEN,bcolors.ENDC)
