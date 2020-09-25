@@ -7,7 +7,7 @@ What they do:
 * Split footage files (movs or imgs) into separate images - tiffs (**extract_images_tiff.php**) or jp4s/jpegs (**extract_images.php**).
 * Combine/filter separate images (with different 'channels' but similar timestamps) into groups for post-processing (**footage_filte_lwir_visible.py** and **eyesis4py393/***).
 * Batch convert tiffs to jpegs (**lwir/LWIR_tiff_to_jpeg.sh**).
-* Annotate jpegs with their file names which are noramlly timestamps
+* Annotate jpegs with their file names which are usually timestamps.
 * Join jpegs (annotated or not) into mov clips - good for previewing and selecting image sets for processing
 
 ## Requirements
