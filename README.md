@@ -8,7 +8,7 @@ What they do:
 * To convert jp4s to jpegs use [python3-convert-jp4](https://git.elphel.com/Elphel/python3-convert-jp4) scripts.
 * Combine/filter separate images (with different 'channels' but similar timestamps) into groups for post-processing (**footage_filte_lwir_visible.py** and **eyesis4py393/***).
 * Batch convert tiffs to jpegs (**lwir/LWIR_tiff_to_jpeg.sh**).
-* Annotate any jpegs with their file names which are usually timestamps ([**batch_timestamp-annotate_jpegs.by**](https://git.elphel.com/Elphel/elphel-tools-x393/blob/master/batch_timestamp-annotate_jpegs.py)).
+* Annotate any jpegs with their file names which are usually timestamps ([batch_timestamp-annotate_jpegs.by](https://git.elphel.com/Elphel/elphel-tools-x393/blob/master/batch_timestamp-annotate_jpegs.py)).
 * Join jpegs (annotated or not) into mov clips - good for previewing and selecting image sets for processing (see inside **lwir/VISIBLE_jpeg_to_mov.sh**).
 
 ## Requirements
