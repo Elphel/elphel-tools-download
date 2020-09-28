@@ -7,7 +7,7 @@ What they do:
 * Split footage files (movs or imgs) into separate images - tiffs ([extract_images_tiff.php](extract_images_tiff.php)) or jp4s/jpegs ([extract_images.php](extract_images.php)).
 * To convert jp4s to jpegs use scripts from [**python3-convert-jp4**](https://git.elphel.com/Elphel/python3-convert-jp4), a separate repo.
 * Combine/filter separate images (with different 'channels' but similar timestamps) into groups for post-processing ([footage_filter_lwir_visible.py](footage_filter_lwir_visible.py) and [eyesis4pi393/*](eyesis4pi393)).
-* Batch convert tiffs to jpegs. See [lwir/LWIR_tiff_to_jpeg.sh](lwir/LWIR_tiff_to_jpeg.sh) - mogrify is aprt of imagemagick.
+* Batch convert tiffs to jpegs. See [lwir/LWIR_tiff_to_jpeg.sh](lwir/LWIR_tiff_to_jpeg.sh) - mogrify is a part of imagemagick.
 * Annotate any jpegs with their file names which are usually timestamps ([batch_timestamp-annotate_jpegs.by](batch_timestamp-annotate_jpegs.py)).
 * Join jpegs (annotated or not) into mov clips - good for previewing and selecting image sets for processing (see inside [lwir/VISIBLE_jpeg_to_mov.sh](lwir/LWIR_jpeg_to_mov.sh)).
 
