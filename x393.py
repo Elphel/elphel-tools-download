@@ -201,7 +201,7 @@ class PC():
 
   def is_raw(self,part):
     res = shout("sudo blkid | grep "+str(part))
-    typ = "TYPE="
+    typ = " TYPE=" # added space, otherwise: /dev/sdd2: PTTYPE="atari" PARTUUID="e174570b-02"
     s0 = re.search(typ,res)
     if s0:
       fstype = ""
