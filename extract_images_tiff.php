@@ -3,7 +3,7 @@
 /**
  * @file extract_images.php
  * @brief split mov/bin/img's (by exif header) into single image files - looks one dir down from the specified path
- * @copyright Copyright (C) 2017 Elphel Inc.
+ * @copyright Copyright (C) 2017-2021 Elphel Inc.
  * @author Elphel Inc. <support-list@support.elphel.com>
  *
  * @par <b>License</b>:
@@ -20,12 +20,15 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+   define('START_TIFF',     hex2bin('4d4d002a')); // start of a TIFF, JP/JP4 also have this TIFF marker
+   define('START_JP',       hex2bin('ffd8ffe1')); // start of JPEG/JP4, TIFF usually does not have JPEG/JP4 markers
 //disable the default time limit for php scripts.
 set_time_limit(0);
 
 $chunksize=10000000; //10MB 
-$startMarkerWithExif=chr(hexdec("4d")).chr(hexdec("4d")).chr(hexdec("00")).chr(hexdec("2a"));
+//$startMarkerWithExif=chr(hexdec("4d")).chr(hexdec("4d")).chr(hexdec("00")).chr(hexdec("2a"));
+//$startMarkerWithExif=chr(hexdec("ff")).chr(hexdec("d8")).chr(hexdec("ff")).chr(hexdec("e1"));
+
 $input_exts = array("img","bin","mov");
 
 // use current dir
@@ -35,7 +38,9 @@ $destination = "0";
 $move_processed = false;
 $processed_subdir = "processed";
 
-$forced_ext = "tiff";
+$forced_ext = "";
+
+$add_to_chn = -1; // do not use and do not create scene directories
 
 function print_help(){
   global $argv;
@@ -43,13 +48,14 @@ function print_help(){
   echo <<<"TXT"
 Help:
   * Usage:
-    ~$ {$argv[0]} path=[path-to-dir] dest_path=[dest-subdir] move_processed=[move-processed-files] ext=[forced-ext]
+    ~$ {$argv[0]} path=[path-to-dir] dest_path=[dest-subdir] move_processed=[move-processed-files] ext=[forced-ext] chn_offs=[add-to-chn]
     
     where:
       * path-to-dir            - string - scan this path + 1 dir down
       * dest-subdir            - string - save results to "path-to-dir/dest-subdir/"
       * move-processed-files - 0(default) or 1 - if not 1 - will not move the processed files
       * forced-ext             - string - override extensions from exifs with this one
+      * add-to-chn             - integer - add to decoded channel number
     
   * Examples:
     ** Split all *.img, *.bin and *.mov files in the current dir and 1 dir down, puts results to '0/':
@@ -100,6 +106,10 @@ if (isset($_GET['ext'])){
   $forced_ext = $_GET['ext'];
 }
 
+if (isset($_GET['chn_offs'])){
+  $add_to_chn = (integer) $_GET['chn_offs'];
+}
+
 $list = preg_grep('/^([^.])/', scandir($path));
 
 if (!is_dir("$path/$destination")) mkdir("$path/$destination",0777);
@@ -109,7 +119,7 @@ foreach ($list as $item) {
     if ($item==$processed_subdir) continue;
     $sublist = preg_grep('/^([^.])/', scandir("$path/$item"));
     foreach($sublist as $subitem){
-      if (split_file("$path/$item","$subitem","../$destination")==0){
+      if (split_file("$path/$item","$subitem","../$destination",$add_to_chn)==0){
         if ($move_processed){
           if (!is_dir("$path/$item/$processed_subdir")){
             mkdir("$path/$item/$processed_subdir",0777);
@@ -119,7 +129,7 @@ foreach ($list as $item) {
       }
     }
   }else{
-    if (split_file("$path","$item","$destination")==0){
+    if (split_file("$path","$item","$destination",$add_to_chn)==0){
       if ($move_processed){
         if (!is_dir("$path/$processed_subdir")){
           mkdir("$path/$processed_subdir",0777);
@@ -130,21 +140,41 @@ foreach ($list as $item) {
   }
 }
 
-function split_file($path,$file,$destination){
+//./extract_images_tiff.php path=/home/eyesis/captures/tests/jp4/ dest_path=results chn_offs=16
+function split_file($path,$file,$destination,$add_to_chn=-1){
 
-  global $startMarkerWithExif;
+//  global $startMarkerWithExif = START_JP; // START_TIFF
   global $chunksize;
   global $input_exts;
+  global $forced_ext;
   
   if (in_array(get_ext("$path/$file"),$input_exts)) {
-    echo "Splitting $path/$file, results dir: $path/$destination\n";
+    echo date(DATE_RFC2822).": Splitting $path/$file, results dir: $path/$destination\n";
     //split_mov("$path",$file,$destination,$extension,$startMarkerWithExif,$chunksize);
-    
+    $file_type = 0; // JP4/JPEG
     $markers=array();
     $offset =0;
-    
     $f=fopen("$path/$file","r");
     
+    $s = fread($f,$chunksize);
+    $pos_jp =   strpos($s,START_JP);
+    $pos_tiff = strpos($s,START_TIFF);
+    if (($pos_jp === false) && ($pos_tiff === false)) {
+        print ("None of TIFF (".bin2hex(START_TIFF).") or JP4/JPEG (".bin2hex(START_JP).") markers found in the first ".$chunksize." bytes of the file $path/$file\n");
+        return -1;
+    }
+    if ($pos_jp === false) {
+        $file_type = 1; // tiff
+    } else if (($pos_tiff !== false) && ($pos_tiff < $pos_jp)){ // reducing probability of stray START_JP
+        $file_type = 1; // tiff
+    } else {
+        $file_type = 0; // jpeg/jp4
+    }
+    $startMarkerWithExif = $file_type? START_TIFF: START_JP; // START_TIFF
+    echo "Detected image type ".($file_type?'TIFF':'JPEG/JP4').".\n";
+    $forced_ext = $file_type?'tiff':''; // was ".tiff":""
+    fclose($f); // not sure if feof is cleraed by fseek, closing/ reopening
+    $f=fopen("$path/$file","r");
     //first scan
     while (!feof($f)) {
       $pos=0;
@@ -173,9 +203,13 @@ function split_file($path,$file,$destination){
       $tmp_name = "$path/$destination/image.tmp";
       file_put_contents($tmp_name,$s);
 
-      $result_name = elphel_specific_result_name($tmp_name);
-
-      rename($tmp_name,"$path/$destination/$result_name");
+      $result_name = elphel_specific_result_name($tmp_name,$add_to_chn);
+      $dest_image = "$path/$destination/$result_name"; // $result_name may now include "/"
+      $dest_set_dir = dirname($dest_image);
+      if (!is_dir($dest_set_dir)){
+          mkdir($dest_set_dir,0777);
+      }
+      rename($tmp_name, $dest_image); // "$path/$destination/$result_name");
     }
     
     return 0;
@@ -184,20 +218,26 @@ function split_file($path,$file,$destination){
   }
 }
 
-function elphel_specific_result_name($file){
+
+function elphel_specific_result_name($file,$add_to_chn=-10){
 
   global $forced_ext;
+  // $add_to_chn<0 - do not use it and do not use scene directories
+  $use_scene_dirs = $add_to_chn >= 0;
+  if ($add_to_chn < 0){
+      $add_to_chn = 0;
+  }
 
-  $exif = exif_read_data($file);
+  $exif = exif_read_data($file); // gets false find, what is wrong
   
   $ext = elphel_specific_result_ext($exif,$forced_ext);
   
   //converting GMT a local time GMT+7
-  $timestamp_local=strtotime($exif['DateTimeOriginal']);/*-25200;*/
+  $timestamp_local=strtotime($exif['DateTimeOriginal']);/*-25200;*/ //
   
-  $subsecs = $exif['SubSecTimeOriginal'];
+  $subsecs = $exif['SubSecTimeOriginal']; // 
   
-  $tmp = explode("_",$exif['Model']);
+  $tmp = explode("_",$exif['Model']); //
   if (count($tmp)==2){
     
     if (trim($tmp[0])=="Eyesis4pi393"){
@@ -223,11 +263,14 @@ function elphel_specific_result_name($file){
     }
     
   }else{
-    $k = intval($exif['PageNumber'])+1;
+    $k = intval($exif['PageNumber'])+1; //
   }
-  
-  return "{$timestamp_local}_{$subsecs}_$k.$ext";
-  
+  if ($use_scene_dirs) {
+      $k += $add_to_chn;
+      return "{$timestamp_local}_{$subsecs}/{$timestamp_local}_{$subsecs}_$k.$ext";
+  } else {
+      return "{$timestamp_local}_{$subsecs}_$k.$ext";
+  }
 }
 
 function get_ext($filename) {
